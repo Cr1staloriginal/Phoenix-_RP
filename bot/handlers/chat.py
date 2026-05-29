@@ -1,91 +1,90 @@
 from aiogram import Router, F
 from aiogram.types import Message
 from sqlalchemy import select
-from bot.models import async_session, Character, ChatMessage
-from bot.services.llm import get_character_response
+from bot.services.llm import llm
+from bot.database import async_session
+from bot.models import User, Character, ChatMessage
+from datetime import datetime
+import logging
 
 router = Router()
+logger = logging.getLogger(__name__)
 
-# Храним текущего персонажа пользователя
-user_current_char = {}   # {user_id: character_id}
-
-@router.message(F.text == "👤 Мои персонажи")
+@router.message(F.text == "📋 Мои персонажи")
 async def my_characters(message: Message):
     async with async_session() as session:
-        result = await session.execute(select(Character))
+        result = await session.execute(
+            select(Character).where(Character.user_id == message.from_user.id)
+        )
         chars = result.scalars().all()
-        
         if not chars:
-            await message.answer("У тебя пока нет персонажей. Импортируй кого-нибудь из Fandom!")
-            return
-        
-        text = "📋 **Твои персонажи:**\n\n"
-        for c in chars:
-            text += f"• {c.name}\n"
-        text += "\nНапиши имя персонажа, чтобы начать с ним чат."
-        await message.answer(text)
+            await message.answer("У вас пока нет персонажей. Создайте или импортируйте!")
+        else:
+            text = "\n".join([f"🔹 {c.name}" for c in chars])
+            await message.answer(f"Ваши персонажи:\n{text}")
 
 @router.message()
-async def handle_chat(message: Message):
-    user_id = message.from_user.id
-    user_text = message.text.strip()
-
-    # Проверяем, выбрал ли пользователь персонажа по имени
+async def chat_with_character(message: Message):
+    # Проверяем, есть ли персонаж у пользователя
     async with async_session() as session:
         result = await session.execute(
-            select(Character).where(Character.name.ilike(f"%{user_text}%"))
+            select(Character).where(Character.user_id == message.from_user.id)
         )
-        char = result.scalar_one_or_none()
-
-        if char:
-            user_current_char[user_id] = char.id
-            greeting = char.greeting or f"Привет! Я {char.name}."
-            await message.answer(f"✅ **{char.name}**\n\n{greeting}")
-            return
-
-    # Если персонаж выбран — общаемся
-    if user_id not in user_current_char:
-        await message.answer("Сначала выбери персонажа (напиши его имя) или импортируй нового.")
-        return
-
-    char_id = user_current_char[user_id]
-
-    # Загружаем персонажа
-    async with async_session() as session:
-        result = await session.execute(select(Character).where(Character.id == char_id))
-        character = result.scalar_one_or_none()
-
+        character = result.scalars().first()
         if not character:
-            await message.answer("Персонаж не найден.")
+            await message.answer("Сначала создай или импортируй персонажа.")
             return
-
-        # Загружаем историю
+        
+        # Получаем последние 10 сообщений для контекста, сортируя по дате
         history_result = await session.execute(
             select(ChatMessage)
-            .where(ChatMessage.user_id == user_id, ChatMessage.character_id == char_id)
-            .order_by(ChatMessage.id.asc())
+            .where(ChatMessage.character_id == character.id)
+            .order_by(ChatMessage.created_at.asc())
+            .limit(10)
         )
-        history = [{"role": m.role, "content": m.content} for m in history_result.scalars().all()]
-
+        history = history_result.scalars().all()
+        
         # Сохраняем сообщение пользователя
-        user_msg = ChatMessage(user_id=user_id, character_id=char_id, role="user", content=user_text)
-        session.add(user_msg)
-        await session.commit()
-
-    await message.answer("💭 Персонаж думает...")
-
-    # Получаем ответ от LLM
-    response_text = await get_character_response(character, history, user_text)
-
-    # Сохраняем ответ
-    async with async_session() as session:
-        assistant_msg = ChatMessage(
-            user_id=user_id, 
-            character_id=char_id, 
-            role="assistant", 
-            content=response_text
+        user_msg = ChatMessage(
+            user_id=message.from_user.id,
+            character_id=character.id,
+            role="user",
+            content=message.text,
+            created_at=datetime.utcnow()
         )
-        session.add(assistant_msg)
-        await session.commit()
-
-    await message.answer(response_text)
+        session.add(user_msg)
+        
+        # Формируем промпт
+        messages = []
+        if character.description:
+            messages.append({"role": "system", "content": f"Ты — {character.name}. {character.description}"})
+        else:
+            messages.append({"role": "system", "content": f"Ты — {character.name}. Отвечай в его стиле, коротко."})
+        
+        # Добавляем историю
+        for msg in history:
+            role = "assistant" if msg.role == "assistant" else "user"
+            messages.append({"role": role, "content": msg.content})
+        
+        messages.append({"role": "user", "content": message.text})
+        
+        try:
+            # Запрос к LLM
+            response = await llm.ainvoke(messages)
+            answer = response.content
+            
+            # Сохраняем ответ бота
+            bot_msg = ChatMessage(
+                user_id=message.from_user.id,
+                character_id=character.id,
+                role="assistant",
+                content=answer,
+                created_at=datetime.utcnow()
+            )
+            session.add(bot_msg)
+            await session.commit()
+            
+            await message.answer(answer)
+        except Exception as e:
+            logger.error(f"Ошибка при обращении к LLM: {e}")
+            await message.answer("Извини, произошла ошибка. Попробуй позже.")
