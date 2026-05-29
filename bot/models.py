@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, JSON
+from sqlalchemy import Column, Integer, String, Text, JSON, ForeignKey
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase
 
@@ -21,3 +21,12 @@ class Character(Base):
     example_dialogue = Column(Text, nullable=True)
     lorebook = Column(JSON, default=list)
     fandom_wiki = Column(String, nullable=True)
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False)
+    character_id = Column(Integer, ForeignKey("characters.id"), nullable=False)
+    role = Column(String)          # "user" или "assistant"
+    content = Column(Text, nullable=False)
