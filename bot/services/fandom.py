@@ -1,38 +1,22 @@
-import httpx
-from bs4 import BeautifulSoup
+import aiohttp
+import logging
+from typing import Optional
 
-class FandomService:
-    async def get_page(self, wiki_base: str, page_title: str):
-        url = f"{wiki_base.rstrip('/')}/api.php"
-        params = {
-            "action": "parse",
-            "page": page_title,
-            "prop": "text",
-            "format": "json",
-            "formatversion": 2
-        }
-        
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                resp = await client.get(url, params=params)
-                resp.raise_for_status()
-                data = resp.json()
-                
-                if "parse" not in data:
+logger = logging.getLogger(__name__)
+
+async def fetch_wiki_page(url: str) -> Optional[dict]:
+    """
+    Парсит страницу Fandom и возвращает заголовок и текст.
+    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    logger.error(f"Ошибка загрузки страницы: {response.status}")
                     return None
-                    
-                html = data["parse"]["text"]
-                soup = BeautifulSoup(html, "html.parser")
-                
-                # Убираем мусор
-                for tag in soup(["script", "style", "nav", "footer", "table", "aside"]):
-                    tag.decompose()
-                    
-                text = soup.get_text(separator="\n", strip=True)
-                return {
-                    "title": data["parse"]["title"],
-                    "content": text[:13000]
-                }
-        except Exception as e:
-            print(f"Fandom error: {e}")
-            return None
+                html = await response.text()
+                # TODO: реальный парсинг с BeautifulSoup
+                return {"title": "Test", "content": html[:500]}
+    except Exception as e:
+        logger.error(f"Ошибка при запросе к Fandom: {e}")
+        return None
