@@ -1,32 +1,26 @@
-from sqlalchemy import Column, Integer, String, Text, JSON, ForeignKey
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
 
-engine = create_async_engine("sqlite+aiosqlite:///./rp_bot.db", echo=False)
-async_session = async_sessionmaker(engine, expire_on_commit=False)
+Base = declarative_base()
 
-class Base(AsyncAttrs, DeclarativeBase):
-    pass
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True)
+    telegram_id = Column(Integer, unique=True, nullable=False)
 
 class Character(Base):
     __tablename__ = "characters"
-    
     id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    avatar_url = Column(String, nullable=True)
-    greeting = Column(Text, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    name = Column(String)
     description = Column(Text, nullable=True)
-    personality = Column(Text, nullable=True)
-    system_prompt = Column(Text, nullable=True)
-    example_dialogue = Column(Text, nullable=True)
-    lorebook = Column(JSON, default=list)
-    fandom_wiki = Column(String, nullable=True)
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
-    
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False)
-    character_id = Column(Integer, ForeignKey("characters.id"), nullable=False)
-    role = Column(String)          # "user" или "assistant"
-    content = Column(Text, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    character_id = Column(Integer, ForeignKey("characters.id"))
+    role = Column(String)  # 'user' или 'assistant'
+    content = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
