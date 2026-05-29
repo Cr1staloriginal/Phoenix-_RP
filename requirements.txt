@@ -1,0 +1,9 @@
+aiogram==3.13.0
+sqlalchemy==2.0.35
+aiosqlite
+httpx
+beautifulsoup4
+python-dotenv
+langchain
+langchain-openai
+langchain-community
