@@ -1,36 +1,33 @@
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from bot.config import settings
 
-# Бесплатные модели OpenRouter
 llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=settings.OPENROUTER_API_KEY,
-    model="deepseek/deepseek-r1:free",   # Хорошее качество и бесплатно
+    model="deepseek/deepseek-r1:free",   # бесплатная и довольно умная
     temperature=0.85,
-    max_tokens=1500,
+    max_tokens=1200,
 )
 
-async def generate_character_card(page_data: dict):
-    prompt = f"""Создай качественную карточку персонажа для ролевой игры.
-
-Название: {page_data['title']}
-Содержание страницы: {page_data['content'][:9000]}
-
-Верни **только** JSON в следующем формате:
-{{
-  "name": "Имя персонажа",
-  "greeting": "Первое сообщение от персонажа",
-  "description": "Краткое описание",
-  "personality": "Характер и особенности",
-  "system_prompt": "Полная инструкция для ИИ как вести себя от лица этого персонажа"
-}}
-
-JSON должен быть валидным."""
+async def get_character_response(character, history: list, user_message: str):
+    """Генерирует ответ от лица персонажа"""
+    system_content = character.system_prompt or f"Ты — {character.name}. Отвечай естественно."
+    
+    messages = [SystemMessage(content=system_content)]
+    
+    # Добавляем историю
+    for msg in history[-10:]:  # последние 10 сообщений
+        if msg["role"] == "user":
+            messages.append(HumanMessage(content=msg["content"]))
+        else:
+            messages.append(AIMessage(content=msg["content"]))
+    
+    messages.append(HumanMessage(content=user_message))
     
     try:
-        response = await llm.ainvoke([HumanMessage(content=prompt)])
+        response = await llm.ainvoke(messages)
         return response.content
     except Exception as e:
         print(f"LLM Error: {e}")
-        return None
+        return "Извини, я сейчас немного перегружен... Попробуй позже."
