@@ -1,11 +1,10 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-main_menu = ReplyKeyboardMarkup(
+main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="👤 Мои персонажи")],
+        [KeyboardButton(text="📋 Мои персонажи")],
         [KeyboardButton(text="➕ Создать персонажа")],
-        [KeyboardButton(text="🌐 Импорт из Fandom")],
+        [KeyboardButton(text="🌐 Импорт из Fandom")]
     ],
-    resize_keyboard=True,
-    input_field_placeholder="Выберите действие..."
+    resize_keyboard=True
 )
