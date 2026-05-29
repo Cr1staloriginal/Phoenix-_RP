@@ -11,8 +11,7 @@ logging.basicConfig(level=logging.INFO)
 
 async def main():
     await init_db()
-    # Убираем keep_alive - он не поддерживается
-    session = AiohttpSession(timeout=60)  # только timeout
+    session = AiohttpSession(timeout=60)
     bot = Bot(token=settings.BOT_TOKEN, session=session)
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
