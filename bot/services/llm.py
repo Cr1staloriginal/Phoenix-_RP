@@ -1,33 +1,25 @@
+import logging
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from bot.config import settings
 
+logger = logging.getLogger(__name__)
+
+# ✅ БЕСПЛАТНАЯ МОДЕЛЬ: OpenRouter сам подставит лучшую бесплатную
 llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=settings.OPENROUTER_API_KEY,
-    model="deepseek/deepseek-r1:free",   # бесплатная и довольно умная
-    temperature=0.85,
-    max_tokens=1200,
+    model="openrouter/free",  # ← КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: бесплатный роутер
+    temperature=0.7,
 )
 
-async def get_character_response(character, history: list, user_message: str):
-    """Генерирует ответ от лица персонажа"""
-    system_content = character.system_prompt or f"Ты — {character.name}. Отвечай естественно."
+async def generate_character_card(page_data: dict) -> str:
+    """
+    Генерирует карточку персонажа из сырых данных Fandom.
+    """
+    title = page_data.get('title', 'Без названия')
+    content = page_data.get('content', '')
+    # Обрезаем текст для красоты
+    if len(content) > 500:
+        content = content[:500] + '...'
     
-    messages = [SystemMessage(content=system_content)]
-    
-    # Добавляем историю
-    for msg in history[-10:]:  # последние 10 сообщений
-        if msg["role"] == "user":
-            messages.append(HumanMessage(content=msg["content"]))
-        else:
-            messages.append(AIMessage(content=msg["content"]))
-    
-    messages.append(HumanMessage(content=user_message))
-    
-    try:
-        response = await llm.ainvoke(messages)
-        return response.content
-    except Exception as e:
-        print(f"LLM Error: {e}")
-        return "Извини, я сейчас немного перегружен... Попробуй позже."
+    return f"📖 **{title}**\n\n{content}\n\n✨ Импортировано с Fandom"
