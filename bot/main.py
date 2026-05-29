@@ -7,6 +7,9 @@ from bot.models import engine, Base
 from bot.handlers.start import router as start_router
 from bot.handlers.character import router as character_router
 from bot.handlers.chat import router as chat_router
+from bot.handlers.start import router as start_router
+from bot.handlers.character import router as character_router
+from bot.handlers.chat import router as chat_router
 
 logging.basicConfig(level=logging.INFO)
 
