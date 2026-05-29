@@ -1,15 +1,13 @@
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
-from bot.keyboards import main_menu
+from bot.keyboards import main_keyboard
 
 router = Router()
 
 @router.message(Command("start"))
-async def cmd_start(message: Message):
+async def start_command(message: Message):
     await message.answer(
-        "👋 Добро пожаловать в **RP Бот**!\n\n"
-        "Здесь можно создавать персонажей из Fandom и общаться с ними без цензуры.\n\n"
-        "Выбери действие ниже 👇",
-        reply_markup=main_menu
+        "Привет! Я бот для RP-игр с LLM. Создавай персонажей и общайся с ними!\nИспользуй кнопки ниже:",
+        reply_markup=main_keyboard
     )
