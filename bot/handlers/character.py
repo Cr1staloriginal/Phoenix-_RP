@@ -3,6 +3,7 @@ from aiogram import Router, F
 from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from sqlalchemy import select  # <--- добавлен импорт
 from bot.services.fandom import fetch_wiki_page
 from bot.services.llm import generate_character_card
 from bot.database import async_session
@@ -12,11 +13,9 @@ from bot.keyboards import main_keyboard, cancel_keyboard
 router = Router()
 logger = logging.getLogger(__name__)
 
-# Состояния для импорта из Fandom
 class ImportFandom(StatesGroup):
     waiting_for_url = State()
 
-# Состояния для ручного создания
 class CreateCharacter(StatesGroup):
     waiting_for_name = State()
     waiting_for_description = State()
@@ -51,18 +50,15 @@ async def process_fandom_url(message: Message, state: FSMContext):
         return
     
     card = await generate_character_card(page_data)
-    # Сохраняем персонажа в БД
     async with async_session() as session:
-        user = await session.execute(
+        result = await session.execute(
             select(User).where(User.telegram_id == message.from_user.id)
         )
-        user = user.scalar_one_or_none()
+        user = result.scalar_one_or_none()
         if not user:
-            # на всякий случай создаём
             user = User(telegram_id=message.from_user.id)
             session.add(user)
             await session.commit()
-        
         character = Character(
             user_id=user.id,
             name=page_data['title'],
@@ -120,15 +116,14 @@ async def process_character_description(message: Message, state: FSMContext):
         description = None
     
     async with async_session() as session:
-        user = await session.execute(
+        result = await session.execute(
             select(User).where(User.telegram_id == message.from_user.id)
         )
-        user = user.scalar_one_or_none()
+        user = result.scalar_one_or_none()
         if not user:
             user = User(telegram_id=message.from_user.id)
             session.add(user)
             await session.commit()
-        
         character = Character(
             user_id=user.id,
             name=name,
