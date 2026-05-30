@@ -1,51 +1,51 @@
-import cloudscraper
-from bs4 import BeautifulSoup
+import aiohttp
 import logging
+import re
 from typing import Optional
 from urllib.parse import unquote
-import asyncio
 
 logger = logging.getLogger(__name__)
 
-# Создаём scraper один раз
-scraper = cloudscraper.create_scraper()
-
 async def fetch_wiki_page(url: str) -> Optional[dict]:
     decoded_url = unquote(url)
-    logger.info(f"Загружаем через cloudscraper: {decoded_url}")
+    logger.info(f"Загружаем через API: {decoded_url}")
     
-    loop = asyncio.get_event_loop()
+    # Извлекаем имя статьи и домен
+    match = re.search(r'https?://([^/]+)/wiki/(.+)', decoded_url)
+    if not match:
+        logger.error("Неверный формат ссылки Fandom")
+        return None
+    domain = match.group(1)
+    article = match.group(2)
+    
+    api_url = f"https://{domain}/api.php"
+    params = {
+        "action": "parse",
+        "page": article,
+        "format": "json",
+        "prop": "text|displaytitle",
+        "redirects": "1"
+    }
+    
     try:
-        response = await loop.run_in_executor(None, scraper.get, decoded_url)
-        if response.status_code != 200:
-            logger.error(f"HTTP {response.status_code}")
-            return None
-        
-        html = response.text
-        soup = BeautifulSoup(html, 'lxml')
-        
-        # Заголовок
-        title_tag = soup.find('h1', class_='page-header__title') or soup.find('h1')
-        title = title_tag.get_text(strip=True) if title_tag else "Без названия"
-        
-        # Контент
-        content_div = soup.find('div', class_='mw-parser-output') or soup.find('div', id='mw-content-text')
-        description = ""
-        if content_div:
-            for p in content_div.find_all('p', recursive=True):
-                text = p.get_text(' ', strip=True)
-                if len(text) > 50 and not text.startswith('['):
-                    description = text
-                    break
-            if not description:
-                description = content_div.get_text(' ', strip=True)[:500]
-        if not description:
-            description = "Описание не найдено."
-        
-        if len(description) > 800:
-            description = description[:800] + "..."
-        
-        return {"title": title, "content": description}
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url, params=params, timeout=15) as resp:
+                if resp.status != 200:
+                    logger.error(f"API ответил {resp.status}")
+                    return None
+                data = await resp.json()
+                if "error" in data:
+                    logger.error(f"API ошибка: {data['error']}")
+                    return None
+                title = data.get("parse", {}).get("title", "Без названия")
+                html_content = data.get("parse", {}).get("text", {}).get("*", "")
+                # Очищаем от HTML-тегов
+                clean = re.sub(r'<[^>]+>', ' ', html_content)
+                clean = re.sub(r'\s+', ' ', clean).strip()
+                description = clean[:800] if len(clean) > 800 else clean
+                if not description:
+                    description = "Описание не найдено."
+                return {"title": title, "content": description}
     except Exception as e:
-        logger.error(f"Ошибка cloudscraper: {e}")
+        logger.error(f"Ошибка API: {e}")
         return None
