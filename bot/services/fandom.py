@@ -1,52 +1,67 @@
-import cloudscraper
-from bs4 import BeautifulSoup
+import aiohttp
 import logging
 from typing import Optional
 from urllib.parse import unquote
-import asyncio
 
 logger = logging.getLogger(__name__)
 
-# Создаём scraper один раз (синхронный, но будем запускать в потоке)
-scraper = cloudscraper.create_scraper()
-
 async def fetch_wiki_page(url: str) -> Optional[dict]:
+    """
+    Извлекает заголовок и описание через Fandom API.
+    """
     decoded_url = unquote(url)
-    logger.info(f"Загружаем через cloudscraper: {decoded_url}")
+    logger.info(f"Загружаем через API: {decoded_url}")
     
-    loop = asyncio.get_event_loop()
+    # Извлекаем название статьи из URL
+    # Пример: https://tiny-bunny.fandom.com/ru/wiki/Алиса
+    if '/wiki/' not in decoded_url:
+        logger.error("Неверный формат ссылки. Должно быть .../wiki/Имя")
+        return None
+    
+    article_name = decoded_url.split('/wiki/')[-1]
+    
+    # API endpoint для Fandom
+    api_url = f"https://tiny-bunny.fandom.com/api.php"
+    params = {
+        "action": "parse",
+        "page": article_name,
+        "format": "json",
+        "prop": "text|displaytitle",
+        "redirects": "1"
+    }
+    
     try:
-        # Запускаем синхронный запрос в отдельном потоке
-        response = await loop.run_in_executor(None, scraper.get, decoded_url)
-        if response.status_code != 200:
-            logger.error(f"HTTP {response.status_code} для {decoded_url}")
-            return None
-        
-        html = response.text
-        soup = BeautifulSoup(html, 'lxml')
-        
-        # Заголовок
-        title_tag = soup.find('h1', class_='page-header__title') or soup.find('h1')
-        title = title_tag.get_text(strip=True) if title_tag else "Без названия"
-        
-        # Контент
-        content_div = soup.find('div', class_='mw-parser-output') or soup.find('div', id='mw-content-text')
-        description = ""
-        if content_div:
-            for p in content_div.find_all('p', recursive=True):
-                text = p.get_text(' ', strip=True)
-                if len(text) > 50 and not text.startswith('['):
-                    description = text
-                    break
-            if not description:
-                description = content_div.get_text(' ', strip=True)[:500]
-        if not description:
-            description = "Описание не найдено."
-        
-        if len(description) > 800:
-            description = description[:800] + "..."
-        
-        return {"title": title, "content": description}
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url, params=params, timeout=15) as resp:
+                if resp.status != 200:
+                    logger.error(f"API вернул {resp.status}")
+                    return None
+                data = await resp.json()
+                if "error" in data:
+                    logger.error(f"API ошибка: {data['error']}")
+                    return None
+                
+                title = data.get("parse", {}).get("title", "Без названия")
+                html_content = data.get("parse", {}).get("text", {}).get("*", "")
+                
+                # Простой парсинг HTML для извлечения текста (без BeautifulSoup)
+                from html.parser import HTMLParser
+                class TextExtractor(HTMLParser):
+                    def __init__(self):
+                        super().__init__()
+                        self.text = []
+                    def handle_data(self, data):
+                        if data.strip():
+                            self.text.append(data.strip())
+                parser = TextExtractor()
+                parser.feed(html_content)
+                full_text = " ".join(parser.text)
+                # Берём первые ~800 символов
+                description = full_text[:800] if len(full_text) > 800 else full_text
+                if not description:
+                    description = "Описание не найдено."
+                
+                return {"title": title, "content": description}
     except Exception as e:
-        logger.error(f"Ошибка cloudscraper: {e}")
+        logger.error(f"Ошибка API Fandom: {e}")
         return None
