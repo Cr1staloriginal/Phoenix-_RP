@@ -4,19 +4,20 @@ from bot.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Бесплатная LLM для RP (Mistral Small 3.1 24B Instruct)
+# Проверяем, есть ли ключ
+if not settings.OPENROUTER_API_KEY:
+    logger.error("OPENROUTER_API_KEY не задан в .env файле!")
+
 llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=settings.OPENROUTER_API_KEY,
-    model="mistralai/mistral-small-3.1-24b-instruct:free",
-    temperature=0.85,          # креативность
+    model="google/gemini-2.0-flash-exp:free",  # стабильная бесплатная модель
+    temperature=0.85,
     max_tokens=1024,
+    timeout=60,
 )
 
 async def generate_character_card(page_data: dict) -> str:
-    """
-    Генерирует карточку персонажа из данных Fandom.
-    """
     title = page_data.get('title', 'Неизвестный персонаж')
     description = page_data.get('content', 'Нет описания.')
     return f"📖 **{title}**\n\n📝 {description}\n\n✨ Импортировано с Fandom"
