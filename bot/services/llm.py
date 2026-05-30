@@ -4,14 +4,10 @@ from bot.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Проверяем, есть ли ключ
-if not settings.OPENROUTER_API_KEY:
-    logger.error("OPENROUTER_API_KEY не задан в .env файле!")
-
 llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=settings.OPENROUTER_API_KEY,
-    model="google/gemini-2.0-flash-exp:free",  # стабильная бесплатная модель
+    model="nousresearch/hermes-3-405b:free", # 🎭 Лучший выбор
     temperature=0.85,
     max_tokens=1024,
     timeout=60,
