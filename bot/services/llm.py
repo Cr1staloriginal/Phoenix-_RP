@@ -4,11 +4,11 @@ from bot.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Актуальная бесплатная модель
+# Динамический роутер: сам подставит любую работающую бесплатную модель
 llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=settings.OPENROUTER_API_KEY,
-    model="mistralai/mistral-small-3.1-24b-instruct:free",
+    model="openrouter/free",   # ← главное изменение
     temperature=0.85,
     max_tokens=1024,
     timeout=60,
