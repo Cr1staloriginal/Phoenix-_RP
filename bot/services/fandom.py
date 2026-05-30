@@ -7,6 +7,7 @@ import asyncio
 
 logger = logging.getLogger(__name__)
 
+# Создаём scraper один раз
 scraper = cloudscraper.create_scraper()
 
 async def fetch_wiki_page(url: str) -> Optional[dict]:
