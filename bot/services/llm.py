@@ -4,10 +4,11 @@ from bot.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Актуальная бесплатная модель
 llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=settings.OPENROUTER_API_KEY,
-    model="nousresearch/hermes-3-405b:free", # 🎭 Лучший выбор
+    model="mistralai/mistral-small-3.1-24b-instruct:free",
     temperature=0.85,
     max_tokens=1024,
     timeout=60,
