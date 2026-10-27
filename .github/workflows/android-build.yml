@@ -38,9 +38,9 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+        with:
+          tools: ""
+          packages: "platforms;android-35,build-tools;35.0.0"
 
       - name: Build debug APK
         working-directory: android
