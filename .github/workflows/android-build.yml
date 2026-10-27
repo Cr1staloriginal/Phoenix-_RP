@@ -23,10 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -48,10 +48,38 @@ jobs:
         working-directory: android
         run: gradle assembleDebug
 
-      - name: Upload debug APK
+      - name: Prepare installable APK with stable signature when configured
+        env:
+          PHOENIX_KEYSTORE_BASE64: ${{ secrets.PHOENIX_KEYSTORE_BASE64 }}
+          PHOENIX_KEY_ALIAS: ${{ secrets.PHOENIX_KEY_ALIAS }}
+          PHOENIX_KEYSTORE_PASSWORD: ${{ secrets.PHOENIX_KEYSTORE_PASSWORD }}
+          PHOENIX_KEY_PASSWORD: ${{ secrets.PHOENIX_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          OUT="android/app/build/outputs/apk/debug/phoenix-rp.apk"
+          cp "$APK" "$OUT"
+
+          if [[ -n "${PHOENIX_KEYSTORE_BASE64:-}" && -n "${PHOENIX_KEY_ALIAS:-}" && -n "${PHOENIX_KEYSTORE_PASSWORD:-}" && -n "${PHOENIX_KEY_PASSWORD:-}" ]]; then
+            echo "$PHOENIX_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/phoenix-rp.jks"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+              --ks "$RUNNER_TEMP/phoenix-rp.jks" \
+              --ks-key-alias "$PHOENIX_KEY_ALIAS" \
+              --ks-pass "pass:$PHOENIX_KEYSTORE_PASSWORD" \
+              --key-pass "pass:$PHOENIX_KEY_PASSWORD" \
+              --out "$RUNNER_TEMP/phoenix-rp-signed.apk" "$APK"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$RUNNER_TEMP/phoenix-rp-signed.apk"
+            mv "$RUNNER_TEMP/phoenix-rp-signed.apk" "$OUT"
+            echo "APK signed with the persistent Phoenix RP key."
+          else
+            echo "::warning::Persistent signing secrets are not configured; this APK will not be upgrade-compatible with future runner-generated debug signatures."
+          fi
+
+      - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
           name: phoenix-rp-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/phoenix-rp.apk
           if-no-files-found: error
           retention-days: 14
