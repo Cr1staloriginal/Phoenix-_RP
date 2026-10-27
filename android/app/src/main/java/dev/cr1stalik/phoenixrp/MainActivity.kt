@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,11 +33,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
+
+private val PhoenixBg = Color(0xFF0A0B12)
+private val PhoenixPanel = Color(0xFF151724)
+private val PhoenixAccent = Color(0xFFB6A0FF)
+private val PhoenixMuted = Color(0xFFA3A4B8)
 
 private data class RpCharacter(
     val id: String,
@@ -49,8 +60,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(background = PhoenixBg, surface = PhoenixPanel, primary = PhoenixAccent, onPrimary = Color(0xFF171126), onBackground = Color(0xFFF4F1FF), onSurface = Color(0xFFF4F1FF), secondary = PhoenixMuted)) {
+                Surface(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF19162B), PhoenixBg))), color = PhoenixBg) {
                     PhoenixApp()
                 }
             }
@@ -88,14 +99,15 @@ private fun PhoenixApp() {
 
     when (screen) {
         "create" -> Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+            Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF19162B), PhoenixBg))).verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text("Новый персонаж", style = MaterialTheme.typography.headlineMedium)
-            Text("Создай героя для своей истории. Данные останутся на телефоне.")
-            OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Имя персонажа") }, singleLine = true)
-            OutlinedTextField(description, { description = it }, Modifier.fillMaxWidth(), label = { Text("Характер и описание") }, minLines = 3)
-            OutlinedTextField(opening, { opening = it }, Modifier.fillMaxWidth(), label = { Text("Начало сцены") }, minLines = 3)
+            Text("PHOENIX RP  /  НОВАЯ ИСТОРИЯ", color = PhoenixAccent, style = MaterialTheme.typography.labelMedium)
+            Text("Создать персонажа", style = MaterialTheme.typography.headlineMedium)
+            Text("Опиши героя и точку, с которой начнётся ваша история.", color = PhoenixMuted)
+            OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Имя персонажа") }, singleLine = true, shape = RoundedCornerShape(16.dp))
+            OutlinedTextField(description, { description = it }, Modifier.fillMaxWidth(), label = { Text("Характер и описание") }, minLines = 3, shape = RoundedCornerShape(16.dp))
+            OutlinedTextField(opening, { opening = it }, Modifier.fillMaxWidth(), label = { Text("Начало сцены") }, minLines = 3, shape = RoundedCornerShape(16.dp))
             Button(
                 onClick = {
                     val safeName = name.trim()
@@ -135,7 +147,7 @@ private fun PhoenixApp() {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(messages) { message ->
-                        Card(Modifier.fillMaxWidth()) {
+                        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = PhoenixPanel)) {
                             Column(Modifier.padding(12.dp)) {
                                 Text(if (message.fromUser) "Ты" else activeCharacter.name,
                                     style = MaterialTheme.typography.labelMedium)
@@ -163,7 +175,7 @@ private fun PhoenixApp() {
                     enabled = draft.trim().isNotEmpty(),
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("Отправить") }
-                Text("Демо-режим: ответы пока шаблонные, ИИ-движок ещё не подключён.",
+                Text("ДЕМО-РЕЖИМ · ИИ-движок ещё не подключён", color = PhoenixMuted,
                     style = MaterialTheme.typography.labelSmall)
             }
         }
@@ -172,13 +184,16 @@ private fun PhoenixApp() {
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text("Phoenix RP", style = MaterialTheme.typography.headlineLarge)
-            Text("Твой мир. Твои персонажи. Твоя история.")
+            Text("PHOENIX RP", color = PhoenixAccent, style = MaterialTheme.typography.labelLarge)
+            Text("Твоя история.", style = MaterialTheme.typography.headlineLarge)
+            Text("Персонажи. Миры. Ролевые сцены.", color = PhoenixMuted)
+            
             Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.background(Brush.linearGradient(listOf(Color(0xFF34264D), PhoenixPanel))).padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("ТВОЯ ВСЕЛЕННАЯ", color = PhoenixAccent, style = MaterialTheme.typography.labelMedium)
                     Text("Персонажи: ${characters.size}", style = MaterialTheme.typography.titleLarge)
                     Text("Создавай героев, задавай им характер и начинай сцену.")
-                    Button(onClick = { screen = "create" }, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { screen = "create" }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = PhoenixAccent), shape = RoundedCornerShape(14.dp)) {
                         Text("＋ Создать персонажа")
                     }
                 }
@@ -187,9 +202,11 @@ private fun PhoenixApp() {
                 Text("Пока нет персонажей. Создай первого — он сохранится на устройстве.")
             } else {
                 Text("Мои персонажи", style = MaterialTheme.typography.titleLarge)
+                Text("${characters.size} всего", color = PhoenixMuted, style = MaterialTheme.typography.labelSmall)
                 characters.toList().forEach { character ->
                     Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("✦  ПЕРСОНАЖ", color = PhoenixAccent, style = MaterialTheme.typography.labelSmall)
                             Text(character.name, style = MaterialTheme.typography.titleMedium)
                             Text(character.description)
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -216,7 +233,7 @@ private fun PhoenixApp() {
                     Text("ИИ: ещё не подключён", style = MaterialTheme.typography.labelMedium)
                 }
             }
-            Text("Прототип 0.2.0 · без аккаунта и облачного API", style = MaterialTheme.typography.labelSmall)
+            Text("PHOENIX RP  ·  ПРОТОТИП 0.3.0", color = PhoenixMuted, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
