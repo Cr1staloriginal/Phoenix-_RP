@@ -94,7 +94,7 @@ private fun PhoenixApp(vm: PhoenixViewModel = viewModel()) {
             val contentWidth = if (maxWidth > 700.dp) 680.dp else maxWidth
             Column(
                 Modifier.widthIn(max = contentWidth).fillMaxWidth().align(Alignment.TopCenter)
-                    .fillMaxHeight().padding(horizontal = if (maxWidth < 360.dp) 12.dp else 18.dp, vertical = 12.dp),
+                    .fillMaxHeight().imePadding().padding(horizontal = if (maxWidth < 360.dp) 12.dp else 18.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (screen == "chat" && activeCharacter != null) {
