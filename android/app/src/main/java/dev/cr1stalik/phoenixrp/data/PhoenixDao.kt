@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 interface PhoenixDao {
  @Query("SELECT * FROM stories ORDER BY createdAt DESC") fun observeStories(): Flow<List<RpStoryEntity>>
  @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertStory(story: RpStoryEntity)
+ @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun ensureStory(story: RpStoryEntity)
  @Query("DELETE FROM stories WHERE id = :id") suspend fun deleteStory(id: String)
  @Query("SELECT * FROM characters WHERE storyId = :storyId ORDER BY createdAt DESC") fun observeCharacters(storyId: String): Flow<List<RpCharacterEntity>>
  @Query("SELECT * FROM characters ORDER BY createdAt DESC") fun observeAllCharacters(): Flow<List<RpCharacterEntity>>
