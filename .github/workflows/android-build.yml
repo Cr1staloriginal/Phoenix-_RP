@@ -6,6 +6,7 @@ on:
       - main
       - android-bootstrap
       - fix/android-foundation-room-tests
+      - release/1.0.0
     paths:
       - "android/**"
       - ".github/workflows/android-build.yml"
