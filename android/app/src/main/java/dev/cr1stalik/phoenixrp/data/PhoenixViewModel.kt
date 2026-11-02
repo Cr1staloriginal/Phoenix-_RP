@@ -15,7 +15,7 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
  val characters = dao.observeAllCharacters().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
  val models = dao.observeModels().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
  init { ensureDefaultStory(); importLegacyPreferences() }
- private fun ensureDefaultStory() { viewModelScope.launch { dao.insertStory(RpStoryEntity("default", "Моя первая история", "Личная RP-вселенная")) } }
+ private fun ensureDefaultStory() { viewModelScope.launch { dao.ensureStory(RpStoryEntity("default", "Моя первая история", "Личная RP-вселенная")) } }
  fun createStory(title: String, description: String = "") { if (title.isBlank()) return; viewModelScope.launch { dao.insertStory(RpStoryEntity(UUID.randomUUID().toString(), title.trim(), description.trim())) } }
  fun deleteStory(id: String) { if (id == "default") return; viewModelScope.launch { characters.value.filter { it.storyId == id }.forEach { deleteCharacter(it.id) }; dao.deleteStory(id) } }
  fun characters(storyId: String): Flow<List<RpCharacterEntity>> = dao.observeCharacters(storyId)
