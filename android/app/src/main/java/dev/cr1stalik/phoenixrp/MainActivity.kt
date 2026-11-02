@@ -159,7 +159,7 @@ private fun StoriesScreen(stories: List<RpStoryEntity>, selected: String, onSele
         Button(onClick = { onCreate(title, description); title = ""; description = "" }, enabled = title.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Создать историю") }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f, fill = false)) {
             items(stories, key = { it.id }) { story ->
-                Card(Modifier.fillMaxWidth(), onClick = { onSelect(story.id) }) {
+                Card(onClick = { onSelect(story.id) }, modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {
                         Text(story.title, style = MaterialTheme.typography.titleMedium)
                         if (story.description.isNotBlank()) Text(story.description, color = Muted)
