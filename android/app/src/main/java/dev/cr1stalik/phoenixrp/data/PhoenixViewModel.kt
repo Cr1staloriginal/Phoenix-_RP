@@ -33,7 +33,7 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
  }
  fun importCharactersJson(storyId: String, raw: String) {
   viewModelScope.launch {
-   runCatching {
+   val result = runCatching {
     val parsed = JSONTokener(raw).nextValue()
     val items = when (parsed) {
      is JSONArray -> (0 until parsed.length()).map { parsed.getJSONObject(it) }
@@ -53,7 +53,10 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
      ))
      if (opening.isNotBlank()) dao.insertMessage(RpMessageEntity(UUID.randomUUID().toString(), id, false, opening))
     }
+    items.size
    }
+   val message = result.fold({ "Импортировано персонажей: $it" }, { it.message ?: "Ошибка импорта JSON" })
+   android.widget.Toast.makeText(getApplication(), message, android.widget.Toast.LENGTH_LONG).show()
   }
  }
  fun updateCharacter(character: RpCharacterEntity) { viewModelScope.launch { dao.insertCharacter(character) } }
