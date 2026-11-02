@@ -41,7 +41,9 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun PhoenixTheme(content: @Composable () -> Unit) {
-    var dark by rememberSaveable { mutableStateOf(true) }
+    val context = LocalContext.current
+    val preferences = remember { context.getSharedPreferences("phoenix_ui", android.content.Context.MODE_PRIVATE) }
+    var dark by rememberSaveable { mutableStateOf(preferences.getBoolean("dark_theme", true)) }
     val colors = if (dark) darkColorScheme(
         primary = androidx.compose.ui.graphics.Color(0xFFB5A6FF),
         secondary = androidx.compose.ui.graphics.Color(0xFF9CB9F5),
@@ -58,7 +60,7 @@ private fun PhoenixTheme(content: @Composable () -> Unit) {
         onSurface = androidx.compose.ui.graphics.Color(0xFF20212A)
     )
     MaterialTheme(colorScheme = colors) {
-        CompositionLocalProvider(LocalThemeToggle provides { dark = !dark }) { content() }
+        CompositionLocalProvider(LocalThemeToggle provides { dark = !dark; preferences.edit().putBoolean("dark_theme", dark).apply() }) { content() }
     }
 }
 
