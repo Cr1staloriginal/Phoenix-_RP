@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.json.JSONArray
+import org.json.JSONObject
+import org.json.JSONTokener
 import java.util.UUID
 class PhoenixViewModel(application: Application) : AndroidViewModel(application) {
  private val dao = PhoenixDatabase.getInstance(application).phoenixDao()
@@ -27,6 +29,31 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
    val id = UUID.randomUUID().toString(); val first = opening.trim().ifBlank { "Персонаж ждёт твоего первого слова." }
    dao.insertCharacter(RpCharacterEntity(id, name.trim(), description.trim(), first, storyId = storyId, appearance = appearance.trim(), background = background.trim(), speechStyle = speechStyle.trim()))
    dao.insertMessage(RpMessageEntity(UUID.randomUUID().toString(), id, false, first))
+  }
+ }
+ fun importCharactersJson(storyId: String, raw: String) {
+  viewModelScope.launch {
+   runCatching {
+    val parsed = JSONTokener(raw).nextValue()
+    val items = when (parsed) {
+     is JSONArray -> (0 until parsed.length()).map { parsed.getJSONObject(it) }
+     is JSONObject -> listOf(parsed)
+     else -> error("Ожидается JSON-объект или массив объектов.")
+    }
+    require(items.isNotEmpty()) { "В JSON нет персонажей." }
+    items.forEach { item ->
+     val name = item.optString("name").trim()
+     require(name.isNotBlank()) { "У каждого персонажа должно быть поле name." }
+     val id = UUID.randomUUID().toString()
+     val opening = item.optString("opening", "Персонаж ждёт твоего первого слова.")
+     dao.insertCharacter(RpCharacterEntity(
+      id = id, name = name, description = item.optString("description"),
+      opening = opening, storyId = storyId, appearance = item.optString("appearance"),
+      background = item.optString("background"), speechStyle = item.optString("speechStyle")
+     ))
+     if (opening.isNotBlank()) dao.insertMessage(RpMessageEntity(UUID.randomUUID().toString(), id, false, opening))
+    }
+   }
   }
  }
  fun updateCharacter(character: RpCharacterEntity) { viewModelScope.launch { dao.insertCharacter(character) } }
