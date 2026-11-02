@@ -319,21 +319,39 @@ private fun MemoryScreen(storyId: String, vm: PhoenixViewModel) {
 
 @Composable
 private fun FandomScreen(storyId: String, vm: PhoenixViewModel) {
-    var title by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf("") }
     var article by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var status by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-        Text("Импорт Fandom", style = MaterialTheme.typography.headlineSmall)
-        Text("Вставь текст статьи и ссылку на источник. Материал сохранится в локальной памяти выбранной истории.", color = Muted)
-        OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Название статьи") })
-        OutlinedTextField(url, { url = it }, Modifier.fillMaxWidth(), label = { Text("URL Fandom") }, singleLine = true)
-        OutlinedTextField(article, { article = it }, Modifier.weight(1f).fillMaxWidth(), label = { Text("Текст статьи") }, minLines = 5)
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        Text("Импорт персонажа из Fandom", style = MaterialTheme.typography.headlineSmall)
+        Text("Вставь ссылку на публичную статью Fandom. Phoenix RP загрузит текст через API и сохранит его в память выбранной истории.", color = Muted)
+        OutlinedTextField(url, { url = it; error = null }, Modifier.fillMaxWidth(), label = { Text("Ссылка на статью Fandom") }, singleLine = true)
         Button(onClick = {
+            loading = true
+            error = null
+            status = null
+            vm.importFandomUrl(storyId, url) { success, message ->
+                loading = false
+                if (success) status = message else error = message
+            }
+        }, enabled = url.isNotBlank() && !loading, modifier = Modifier.fillMaxWidth()) {
+            Text(if (loading) "Загрузка…" else "Загрузить статью")
+        }
+        status?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        Text("Ручной импорт", style = MaterialTheme.typography.titleMedium)
+        OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Название материала") })
+        OutlinedTextField(article, { article = it }, Modifier.weight(1f).fillMaxWidth(), label = { Text("Текст статьи") }, minLines = 4)
+        OutlinedButton(onClick = {
             FandomTextImporter.fromPastedText(title, url, article)
-                .onSuccess { vm.addMemory(storyId, null, "${it.title}\nИсточник: ${it.sourceUrl}\n${it.text}", "fandom"); title = ""; url = ""; article = ""; error = null }
+                .onSuccess {
+                    vm.addMemory(storyId, null, "${it.title}\nИсточник: ${it.sourceUrl}\n${it.text}", "fandom")
+                    title = ""; article = ""; error = null; status = "Материал сохранён в память истории."
+                }
                 .onFailure { error = it.message }
-        }, enabled = article.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Импортировать материал") }
+        }, enabled = article.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Сохранить вставленный текст") }
     }
 }
