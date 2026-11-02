@@ -6,12 +6,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -89,7 +91,7 @@ private fun PhoenixApp(vm: PhoenixViewModel = viewModel()) {
         BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             val contentWidth = if (maxWidth > 700.dp) 680.dp else maxWidth
             Column(
-                Modifier.fillMaxWidth().widthIn(max = contentWidth).align(Alignment.TopCenter)
+                Modifier.widthIn(max = contentWidth).fillMaxWidth().align(Alignment.TopCenter)
                     .fillMaxHeight().padding(horizontal = if (maxWidth < 360.dp) 12.dp else 18.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -159,7 +161,7 @@ private fun StoriesScreen(stories: List<RpStoryEntity>, selected: String, onSele
         Button(onClick = { onCreate(title, description); title = ""; description = "" }, enabled = title.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Создать историю") }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f, fill = false)) {
             items(stories, key = { it.id }) { story ->
-                Card(onClick = { onSelect(story.id) }, modifier = Modifier.fillMaxWidth()) {
+                Card(modifier = Modifier.fillMaxWidth().clickable { onSelect(story.id) }) {
                     Column(Modifier.padding(16.dp)) {
                         Text(story.title, style = MaterialTheme.typography.titleMedium)
                         if (story.description.isNotBlank()) Text(story.description, color = Muted)
