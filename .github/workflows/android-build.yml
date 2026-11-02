@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - android-bootstrap
+      - fix/android-foundation-room-tests
     paths:
       - "android/**"
       - ".github/workflows/android-build.yml"
@@ -18,8 +19,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build Phoenix RP APK
+  test-and-build:
+    name: Test and build Phoenix RP
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -41,14 +42,17 @@ jobs:
         with:
           cmdline-tools-version: latest
           accept-android-sdk-licenses: true
-          log-accepted-android-sdk-licenses: true
           packages: 'platforms;android-35 build-tools;35.0.0'
+
+      - name: Run unit tests
+        working-directory: android
+        run: gradle testDebugUnitTest
 
       - name: Build debug APK
         working-directory: android
         run: gradle assembleDebug
 
-      - name: Prepare installable APK with stable signature when configured
+      - name: Prepare installable APK
         env:
           PHOENIX_KEYSTORE_BASE64: ${{ secrets.PHOENIX_KEYSTORE_BASE64 }}
           PHOENIX_KEY_ALIAS: ${{ secrets.PHOENIX_KEY_ALIAS }}
@@ -73,7 +77,7 @@ jobs:
             mv "$RUNNER_TEMP/phoenix-rp-signed.apk" "$OUT"
             echo "APK signed with the persistent Phoenix RP key."
           else
-            echo "::warning::Persistent signing secrets are not configured; this APK will not be upgrade-compatible with future runner-generated debug signatures."
+            echo "::warning::Signing secrets are missing. The APK uses the runner debug key and may not update an APK signed with a different key."
           fi
 
       - name: Upload installable APK
