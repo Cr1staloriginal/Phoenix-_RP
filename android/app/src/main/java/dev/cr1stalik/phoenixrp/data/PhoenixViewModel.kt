@@ -31,7 +31,7 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
    dao.insertMessage(RpMessageEntity(UUID.randomUUID().toString(), id, false, first))
   }
  }
- fun importCharactersJson(storyId: String, raw: String) {
+ fun importCharactersJson(storyId: String, raw: String, onResult: (Boolean, String) -> Unit) {
   viewModelScope.launch {
    val result = runCatching {
     val parsed = JSONTokener(raw).nextValue()
@@ -55,8 +55,10 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
     }
     items.size
    }
-   val message = result.fold({ "Импортировано персонажей: $it" }, { it.message ?: "Ошибка импорта JSON" })
-   android.widget.Toast.makeText(getApplication(), message, android.widget.Toast.LENGTH_LONG).show()
+   result.fold(
+    { onResult(true, "Импортировано персонажей: $it") },
+    { onResult(false, it.message ?: "Ошибка импорта JSON") }
+   )
   }
  }
  fun updateCharacter(character: RpCharacterEntity) { viewModelScope.launch { dao.insertCharacter(character) } }
