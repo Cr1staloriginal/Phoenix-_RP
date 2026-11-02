@@ -3,6 +3,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.cr1stalik.phoenixrp.domain.ReplyComposer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -73,6 +75,20 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
  fun addMemory(storyId: String, characterId: String?, content: String, source: String = "manual") {
   if (content.isBlank()) return
   viewModelScope.launch { dao.insertMemory(RpMemoryEntity(UUID.randomUUID().toString(), storyId, characterId, content.trim(), source)) }
+ }
+
+ fun importFandomUrl(storyId: String, url: String, onResult: (Boolean, String) -> Unit) {
+  viewModelScope.launch {
+   val result = withContext(Dispatchers.IO) { dev.cr1stalik.phoenixrp.domain.FandomTextImporter.fetchArticle(url) }
+   result.fold(
+    { reference ->
+     dao.insertMemory(RpMemoryEntity(UUID.randomUUID().toString(), storyId, null,
+      "${reference.title}\nИсточник: ${reference.sourceUrl}\n${reference.text}", "fandom"))
+     onResult(true, "Статья «${reference.title}» импортирована в память истории.")
+    },
+    { error -> onResult(false, error.message ?: "Не удалось загрузить статью Fandom.") }
+   )
+  }
  }
  fun addModel(model: LocalModelEntity) { viewModelScope.launch { dao.insertModel(model) } }
  fun deleteModel(model: LocalModelEntity) { viewModelScope.launch { runCatching { java.io.File(model.filePath).delete() }; dao.deleteModel(model.id) } }
