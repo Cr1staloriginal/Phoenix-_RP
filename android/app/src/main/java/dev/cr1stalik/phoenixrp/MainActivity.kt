@@ -172,7 +172,7 @@ private fun StoriesScreen(stories: List<RpStoryEntity>, selected: String, onSele
 
 @Composable
 private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity>, onCreate: () -> Unit, onEdit: (RpCharacterEntity) -> Unit, onChat: (RpCharacterEntity) -> Unit, onDelete: (String) -> Unit, onBack: () -> Unit) {
-    Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Персонажи", style = MaterialTheme.typography.headlineSmall)
             TextButton(onClick = onBack) { Text("Истории") }
@@ -205,7 +205,7 @@ private fun CharacterEditor(character: RpCharacterEntity?, onSave: (String, Stri
     var background by remember(character?.id) { mutableStateOf(character?.background ?: "") }
     var speech by remember(character?.id) { mutableStateOf(character?.speechStyle ?: "") }
     var opening by remember(character?.id) { mutableStateOf(character?.opening ?: "") }
-    Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(if (character == null) "Новый персонаж" else "Редактирование персонажа", style = MaterialTheme.typography.headlineSmall)
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Имя") }, singleLine = true) }
@@ -249,7 +249,7 @@ private fun ChatScreen(character: RpCharacterEntity, vm: PhoenixViewModel, onBac
 
 @Composable
 private fun ModelsScreen(models: List<LocalModelEntity>, onImport: () -> Unit, onDelete: (LocalModelEntity) -> Unit) {
-    Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Локальные GGUF-модели", style = MaterialTheme.typography.headlineSmall)
         Text("Файлы копируются в приватное хранилище приложения. Большие модели могут не поместиться в память устройства.", color = Muted)
         Button(onClick = onImport, modifier = Modifier.fillMaxWidth()) { Text("Импортировать GGUF") }
@@ -275,7 +275,7 @@ private fun ModelsScreen(models: List<LocalModelEntity>, onImport: () -> Unit, o
 private fun MemoryScreen(storyId: String, vm: PhoenixViewModel) {
     val memories by vm.memories(storyId).collectAsStateWithLifecycle(emptyList())
     var note by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Долгосрочная память", style = MaterialTheme.typography.headlineSmall)
         Text("Сохраняй важные факты, события и договорённости этой истории.", color = Muted)
         OutlinedTextField(note, { note = it }, Modifier.fillMaxWidth(), label = { Text("Новая заметка") }, minLines = 3)
@@ -294,7 +294,7 @@ private fun FandomScreen(storyId: String, vm: PhoenixViewModel) {
     var url by remember { mutableStateOf("") }
     var article by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
         Text("Импорт Fandom", style = MaterialTheme.typography.headlineSmall)
         Text("Вставь текст статьи и ссылку на источник. Материал сохранится в локальной памяти выбранной истории.", color = Muted)
         OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Название статьи") })
