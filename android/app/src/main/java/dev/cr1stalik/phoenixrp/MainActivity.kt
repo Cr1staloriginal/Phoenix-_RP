@@ -105,6 +105,7 @@ private fun PhoenixApp(vm: PhoenixViewModel = viewModel()) {
                             onEdit = { editingCharacter = it; screen = "editor" },
                             onChat = { activeCharacter = it; screen = "chat" },
                             onDelete = vm::deleteCharacter,
+                            onImport = { raw -> vm.importCharactersJson(storyId, raw) },
                             onBack = { screen = "stories" }
                         )
                         "editor" -> CharacterEditor(
@@ -171,13 +172,32 @@ private fun StoriesScreen(stories: List<RpStoryEntity>, selected: String, onSele
 }
 
 @Composable
-private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity>, onCreate: () -> Unit, onEdit: (RpCharacterEntity) -> Unit, onChat: (RpCharacterEntity) -> Unit, onDelete: (String) -> Unit, onBack: () -> Unit) {
+private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity>, onCreate: () -> Unit, onEdit: (RpCharacterEntity) -> Unit, onChat: (RpCharacterEntity) -> Unit, onDelete: (String) -> Unit, onImport: (String) -> Unit, onBack: () -> Unit) {
+    var showImport by remember { mutableStateOf(false) }
+    var importText by remember { mutableStateOf("") }
+    var importError by remember { mutableStateOf<String?>(null) }
+    if (showImport) {
+        AlertDialog(
+            onDismissRequest = { showImport = false },
+            title = { Text("Импорт персонажей") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Вставь JSON-объект или массив персонажей. Поддерживаются поля name, description, appearance, background, speechStyle и opening.")
+                    OutlinedTextField(importText, { importText = it }, label = { Text("JSON") }, minLines = 5, maxLines = 9)
+                    importError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                }
+            },
+            confirmButton = { TextButton(onClick = { onImport(importText); showImport = false; importText = "" }) { Text("Импортировать") } },
+            dismissButton = { TextButton(onClick = { showImport = false }) { Text("Отмена") } }
+        )
+    }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Персонажи", style = MaterialTheme.typography.headlineSmall)
             TextButton(onClick = onBack) { Text("Истории") }
         }
         Button(onClick = onCreate, modifier = Modifier.fillMaxWidth()) { Text("＋ Новый персонаж") }
+        OutlinedButton(onClick = { showImport = true; importError = null }, modifier = Modifier.fillMaxWidth()) { Text("Импортировать из JSON") }
         if (characters.isEmpty()) Text("В этой истории пока нет персонажей.", color = Muted)
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(characters, key = { it.id }) { character ->
