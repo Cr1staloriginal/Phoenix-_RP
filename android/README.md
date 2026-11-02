@@ -1,20 +1,23 @@
 # Phoenix RP Android
 Native Android client built with Kotlin, Jetpack Compose and Room.
 
-## Current foundation
-- Independent RP stories and story-scoped character storage.
-- Expanded character fields: personality/description, appearance, background, speech style and opening scene.
-- Room v1 to v2 migration preserves existing characters and conversations.
-- Local memory/reference records and a GGUF model catalogue.
-- GGUF header inspection before registering a model.
-- Compose safe drawing insets and width constraints for system bars, cutouts and compact screens.
-- Light/dark theme support is being introduced in the UI layer.
+## Implemented foundation
+- Independent RP stories with story-scoped character storage.
+- Extended character editor: personality, appearance, background, speech style and opening scene.
+- JSON character import from a pasted object or array.
+- Room v1 → v2 migration preserving existing characters and conversations.
+- Persistent local memory/reference notes, separated by story.
+- GGUF file import into app-private storage, file-header validation and local model catalogue.
+- Persistent light/dark theme preference.
+- Responsive Compose layout with safe drawing insets for system bars and display cutouts, plus a readable max content width on tablets/wide screens.
+- Fandom article text import with source URL attribution.
 
-## AI runtime status
-A LocalInferenceEngine boundary and LlamaCppEngine placeholder now define the integration point. **llama.cpp is not bundled and generation is not active.** Chat replies remain deterministic demo text. The native-runtime phase must add NDK/JNI, ABI packaging, context management, cancellation and memory safeguards.
-
-## Imports
-Fandom text can be stored as a local reference after pasting article text and its source URL. Automatic URL fetching and site parsing are not enabled yet. Full character JSON transfer is a follow-up task.
+## Important limitations
+- llama.cpp is **not yet bundled**. LocalInferenceEngine/LlamaCppEngine currently define an integration boundary only; the chat still uses the deterministic demo ReplyComposer.
+- GGUF files can be imported and catalogued, but cannot yet be loaded for inference.
+- Memory notes are stored locally but are not yet automatically retrieved and injected into the model prompt.
+- Fandom import currently accepts pasted article text and URL. Automatic URL fetching/site parsing is not enabled.
+- Character JSON import is available; JSON export and file-picker based JSON import remain future work.
 
 ## Build
 Use the repository GitHub Actions workflow. Persistent release signing requires PHOENIX_KEYSTORE_BASE64, PHOENIX_KEY_ALIAS, PHOENIX_KEYSTORE_PASSWORD and PHOENIX_KEY_PASSWORD GitHub Actions secrets. Never commit a keystore.
