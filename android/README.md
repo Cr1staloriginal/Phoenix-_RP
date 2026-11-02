@@ -1,50 +1,23 @@
-# Phoenix RP — Android
+# Phoenix RP Android
+Native Android client built with Kotlin, Jetpack Compose and Room.
 
-Native Android client for Phoenix RP. The legacy Python Telegram bot remains in the repository and is not part of the Android application.
+## Implemented foundation
+- Independent RP stories with story-scoped character storage.
+- Extended character editor: personality, appearance, background, speech style and opening scene.
+- JSON character import from a pasted object or array.
+- Room v1 → v2 migration preserving existing characters and conversations.
+- Persistent local memory/reference notes, separated by story.
+- GGUF file import into app-private storage, file-header validation and local model catalogue.
+- Persistent light/dark theme preference.
+- Responsive Compose layout with safe drawing insets for system bars and display cutouts, plus a readable max content width on tablets/wide screens.
+- Fandom article text import with source URL attribution.
 
-## Current status — 0.4.0
-
-- Kotlin + Jetpack Compose interface
-- Character creation and deletion
-- Local character and message storage with Room
-- ViewModel-based state and coroutine operations
-- Prototype reply composer (not an AI model)
-- Unit tests for prototype reply behavior
-- Cloud CI runs unit tests before building the debug APK
-
-## Requirements
-
-- JDK 17
-- Android SDK platform 35
-- Gradle 8.9
-- Android 7.0 (API 24) or newer
+## Important limitations
+- llama.cpp is **not yet bundled**. LocalInferenceEngine/LlamaCppEngine currently define an integration boundary only; the chat still uses the deterministic demo ReplyComposer.
+- GGUF files can be imported and catalogued, but cannot yet be loaded for inference.
+- Memory notes are stored locally but are not yet automatically retrieved and injected into the model prompt.
+- Fandom import currently accepts pasted article text and URL. Automatic URL fetching/site parsing is not enabled.
+- Character JSON import is available; JSON export and file-picker based JSON import remain future work.
 
 ## Build
-
-From this directory:
-
-```bash
-gradle testDebugUnitTest
-gradle assembleDebug
-```
-
-The debug APK is produced at `app/build/outputs/apk/debug/app-debug.apk`.
-
-## Signing and upgrades
-
-The workflow supports these GitHub Actions repository secrets:
-
-- `PHOENIX_KEYSTORE_BASE64`
-- `PHOENIX_KEY_ALIAS`
-- `PHOENIX_KEYSTORE_PASSWORD`
-- `PHOENIX_KEY_PASSWORD`
-
-All four must be configured to sign APKs with a persistent key. Do not commit the keystore or passwords. Without these secrets, CI produces a debug-signed APK which may not be upgrade-compatible with APKs signed by a different runner key.
-
-## Data
-
-Characters and messages are stored in the app-private Room database `phoenix-rp.db`. The current schema is version 1. Database migrations must be added before changing the schema in future releases.
-
-## AI roadmap
-
-The current reply composer is a deterministic prototype, not a language model. GGUF model loading and llama.cpp integration are not implemented yet. Large model files must be downloaded separately rather than committed to the repository or bundled into the APK.
+Use the repository GitHub Actions workflow. Persistent release signing requires PHOENIX_KEYSTORE_BASE64, PHOENIX_KEY_ALIAS, PHOENIX_KEYSTORE_PASSWORD and PHOENIX_KEY_PASSWORD GitHub Actions secrets. Never commit a keystore.
