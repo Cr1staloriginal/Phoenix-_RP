@@ -109,7 +109,7 @@ private fun PhoenixApp(vm: PhoenixViewModel = viewModel()) {
                             onEdit = { editingCharacter = it; screen = "editor" },
                             onChat = { activeCharacter = it; screen = "chat" },
                             onDelete = vm::deleteCharacter,
-                            onImport = { raw -> vm.importCharactersJson(storyId, raw) },
+                            onImport = { raw, done -> vm.importCharactersJson(storyId, raw, done) },
                             onBack = { screen = "stories" }
                         )
                         "editor" -> CharacterEditor(
@@ -176,7 +176,7 @@ private fun StoriesScreen(stories: List<RpStoryEntity>, selected: String, onSele
 }
 
 @Composable
-private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity>, onCreate: () -> Unit, onEdit: (RpCharacterEntity) -> Unit, onChat: (RpCharacterEntity) -> Unit, onDelete: (String) -> Unit, onImport: (String) -> Unit, onBack: () -> Unit) {
+private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity>, onCreate: () -> Unit, onEdit: (RpCharacterEntity) -> Unit, onChat: (RpCharacterEntity) -> Unit, onDelete: (String) -> Unit, onImport: (String, (Boolean, String) -> Unit) -> Unit, onBack: () -> Unit) {
     var showImport by remember { mutableStateOf(false) }
     var importText by remember { mutableStateOf("") }
     var importError by remember { mutableStateOf<String?>(null) }
@@ -191,7 +191,12 @@ private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity
                     importError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
             },
-            confirmButton = { TextButton(onClick = { onImport(importText); showImport = false; importText = "" }) { Text("Импортировать") } },
+            confirmButton = { TextButton(onClick = {
+                onImport(importText) { success, message ->
+                    if (success) { showImport = false; importText = ""; importError = null }
+                    else importError = message
+                }
+            }) { Text("Импортировать") } },
             dismissButton = { TextButton(onClick = { showImport = false }) { Text("Отмена") } }
         )
     }
