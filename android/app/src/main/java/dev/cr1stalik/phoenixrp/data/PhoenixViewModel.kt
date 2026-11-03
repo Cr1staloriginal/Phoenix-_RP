@@ -19,7 +19,7 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
  init { ensureDefaultStory(); importLegacyPreferences() }
  private fun ensureDefaultStory() { viewModelScope.launch { dao.ensureStory(RpStoryEntity("default", "Моя первая история", "Личная RP-вселенная")) } }
  fun createStory(title: String, description: String = "") { if (title.isBlank()) return; viewModelScope.launch { dao.insertStory(RpStoryEntity(UUID.randomUUID().toString(), title.trim(), description.trim())) } }
- fun deleteStory(id: String) { if (id == "default") return; viewModelScope.launch { characters.value.filter { it.storyId == id }.forEach { deleteCharacter(it.id) }; dao.deleteStory(id) } }
+ fun deleteStory(id: String) { if (id == "default") return; viewModelScope.launch { dao.deleteStoryAndContent(id) } }
  fun characters(storyId: String): Flow<List<RpCharacterEntity>> = dao.observeCharacters(storyId)
  fun messages(characterId: String): Flow<List<RpMessageEntity>> = dao.observeMessages(characterId)
  fun memories(storyId: String): Flow<List<RpMemoryEntity>> = dao.observeMemories(storyId)
@@ -62,7 +62,7 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
   }
  }
  fun updateCharacter(character: RpCharacterEntity) { viewModelScope.launch { dao.insertCharacter(character) } }
- fun deleteCharacter(id: String) { viewModelScope.launch { dao.deleteMessages(id); dao.deleteCharacter(id) } }
+ fun deleteCharacter(id: String) { viewModelScope.launch { dao.deleteMessages(id); dao.deleteMemoriesForCharacter(id); dao.deleteCharacter(id) } }
  fun sendMessage(character: RpCharacterEntity, text: String) {
   val clean = text.trim(); if (clean.isBlank()) return
   viewModelScope.launch {
@@ -70,6 +70,7 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
    dao.insertMessage(RpMessageEntity(UUID.randomUUID().toString(), character.id, false, ReplyComposer.compose(character.name, character.description, clean)))
   }
  }
+ fun deleteMemory(id: String) { viewModelScope.launch { dao.deleteMemory(id) } }
  fun addMemory(storyId: String, characterId: String?, content: String, source: String = "manual") {
   if (content.isBlank()) return
   viewModelScope.launch { dao.insertMemory(RpMemoryEntity(UUID.randomUUID().toString(), storyId, characterId, content.trim(), source)) }
