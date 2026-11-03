@@ -1,21 +1,36 @@
 package dev.cr1stalik.phoenixrp.domain
 
 import dev.cr1stalik.phoenixrp.data.RpCharacterEntity
-import org.json.JSONArray
-import org.json.JSONObject
 
 object CharacterJsonExporter {
-    fun toJson(characters: List<RpCharacterEntity>): String {
-        val array = JSONArray()
-        characters.forEach { character ->
-            array.put(JSONObject()
-                .put("name", character.name)
-                .put("description", character.description)
-                .put("appearance", character.appearance)
-                .put("background", character.background)
-                .put("speechStyle", character.speechStyle)
-                .put("opening", character.opening))
+    fun toJson(characters: List<RpCharacterEntity>): String =
+        characters.joinToString(prefix = "[", postfix = "]") { character ->
+            listOf(
+                "name" to character.name,
+                "description" to character.description,
+                "appearance" to character.appearance,
+                "background" to character.background,
+                "speechStyle" to character.speechStyle,
+                "opening" to character.opening
+            ).joinToString(prefix = "{", postfix = "}") { (key, value) ->
+                "${quote(key)}:${quote(value)}"
+            }
         }
-        return array.toString(2)
+
+    private fun quote(value: String): String = buildString {
+        append('"')
+        value.forEach { char ->
+            when (char) {
+                '"' -> append("\\\"")
+                '\\' -> append("\\\\")
+                '\b' -> append("\\b")
+                '\u000C' -> append("\\f")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                else -> if (char.code < 0x20) append("\\u%04x".format(char.code)) else append(char)
+            }
+        }
+        append('"')
     }
 }
