@@ -26,6 +26,7 @@ import dev.cr1stalik.phoenixrp.domain.GgufModelInspector
 import dev.cr1stalik.phoenixrp.domain.FandomTextImporter
 import java.io.File
 import java.util.UUID
+import kotlinx.coroutines.launch
 
 private val Ink = androidx.compose.ui.graphics.Color(0xFF171923)
 private val Violet = androidx.compose.ui.graphics.Color(0xFF7866D8)
