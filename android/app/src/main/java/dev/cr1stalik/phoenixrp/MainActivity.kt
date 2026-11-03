@@ -24,6 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.cr1stalik.phoenixrp.data.*
 import dev.cr1stalik.phoenixrp.domain.GgufModelInspector
 import dev.cr1stalik.phoenixrp.domain.FandomTextImporter
+import dev.cr1stalik.phoenixrp.domain.CharacterJsonExporter
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.launch
@@ -77,6 +78,12 @@ private fun PhoenixApp(vm: PhoenixViewModel = viewModel()) {
     var activeCharacter by remember { mutableStateOf<RpCharacterEntity?>(null) }
     var editingCharacter by remember { mutableStateOf<RpCharacterEntity?>(null) }
     val characters by vm.characters(storyId).collectAsStateWithLifecycle(emptyList())
+    val exportCharacters = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) runCatching {
+            context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(CharacterJsonExporter.toJson(characters)) }
+                ?: error("Не удалось создать файл экспорта")
+        }.onFailure { android.widget.Toast.makeText(context, it.message ?: "Ошибка экспорта", android.widget.Toast.LENGTH_LONG).show() }
+    }
     val openModel = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runCatching {
             val dir = File(context.filesDir, "models").apply { mkdirs() }
@@ -111,6 +118,7 @@ private fun PhoenixApp(vm: PhoenixViewModel = viewModel()) {
                             onChat = { activeCharacter = it; screen = "chat" },
                             onDelete = vm::deleteCharacter,
                             onImport = { raw, done -> vm.importCharactersJson(storyId, raw, done) },
+                            onExport = { exportCharacters.launch("phoenix-characters.json") },
                             onBack = { screen = "stories" }
                         )
                         "editor" -> CharacterEditor(
@@ -180,7 +188,7 @@ private fun StoriesScreen(stories: List<RpStoryEntity>, selected: String, onSele
 }
 
 @Composable
-private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity>, onCreate: () -> Unit, onEdit: (RpCharacterEntity) -> Unit, onChat: (RpCharacterEntity) -> Unit, onDelete: (String) -> Unit, onImport: (String, (Boolean, String) -> Unit) -> Unit, onBack: () -> Unit) {
+private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity>, onCreate: () -> Unit, onEdit: (RpCharacterEntity) -> Unit, onChat: (RpCharacterEntity) -> Unit, onDelete: (String) -> Unit, onImport: (String, (Boolean, String) -> Unit) -> Unit, onExport: () -> Unit, onBack: () -> Unit) {
     var showImport by remember { mutableStateOf(false) }
     var importText by remember { mutableStateOf("") }
     var importError by remember { mutableStateOf<String?>(null) }
@@ -210,7 +218,10 @@ private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity
             TextButton(onClick = onBack) { Text("Истории") }
         }
         Button(onClick = onCreate, modifier = Modifier.fillMaxWidth()) { Text("＋ Новый персонаж") }
-        OutlinedButton(onClick = { showImport = true; importError = null }, modifier = Modifier.fillMaxWidth()) { Text("Импортировать из JSON") }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { showImport = true; importError = null }, modifier = Modifier.weight(1f)) { Text("Импорт JSON") }
+            OutlinedButton(onClick = onExport, modifier = Modifier.weight(1f)) { Text("Экспорт JSON") }
+        }
         if (characters.isEmpty()) Text("В этой истории пока нет персонажей.", color = Muted)
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(characters, key = { it.id }) { character ->
