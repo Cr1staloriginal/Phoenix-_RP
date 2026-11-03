@@ -3,7 +3,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.cr1stalik.phoenixrp.domain.ReplyComposer
+import dev.cr1stalik.phoenixrp.domain.RpInferenceRequest
+import dev.cr1stalik.phoenixrp.domain.RpPromptBuilder
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -84,6 +87,11 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
    dao.insertMessage(RpMessageEntity(UUID.randomUUID().toString(), character.id, true, clean))
    dao.insertMessage(RpMessageEntity(UUID.randomUUID().toString(), character.id, false, ReplyComposer.compose(character.name, character.description, clean)))
   }
+ }
+ suspend fun buildInferenceRequest(character: RpCharacterEntity): RpInferenceRequest {
+  val savedMemories = dao.observeMemories(character.storyId).first()
+  val conversation = dao.observeMessages(character.id).first()
+  return RpPromptBuilder.build(character, savedMemories, conversation)
  }
  fun deleteMemory(id: String) { viewModelScope.launch { dao.deleteMemory(id) } }
  fun addMemory(storyId: String, characterId: String?, content: String, source: String = "manual") {
