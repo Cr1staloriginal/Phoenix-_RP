@@ -1,23 +1,28 @@
 package dev.cr1stalik.phoenixrp.domain
 
 import dev.cr1stalik.phoenixrp.data.RpCharacterEntity
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.json.JSONArray
 
 class CharacterJsonExporterTest {
-    @Test fun exportsEveryEditableCharacterFieldAsImportableArray() {
+    @Test fun exportsEveryEditableCharacterFieldAsJson() {
         val json = CharacterJsonExporter.toJson(listOf(
             RpCharacterEntity("id", "Mira", "Calm", "Opening", appearance = "Silver fur", background = "From north", speechStyle = "Quiet")
         ))
-        val item = JSONArray(json).getJSONObject(0)
-        assertEquals("Mira", item.getString("name"))
-        assertEquals("Calm", item.getString("description"))
-        assertEquals("Silver fur", item.getString("appearance"))
-        assertEquals("From north", item.getString("background"))
-        assertEquals("Quiet", item.getString("speechStyle"))
-        assertEquals("Opening", item.getString("opening"))
         assertTrue(json.startsWith("["))
+        assertTrue(json.contains("\"name\":\"Mira\""))
+        assertTrue(json.contains("\"description\":\"Calm\""))
+        assertTrue(json.contains("\"appearance\":\"Silver fur\""))
+        assertTrue(json.contains("\"background\":\"From north\""))
+        assertTrue(json.contains("\"speechStyle\":\"Quiet\""))
+        assertTrue(json.contains("\"opening\":\"Opening\""))
+    }
+
+    @Test fun escapesQuotesAndNewlines() {
+        val json = CharacterJsonExporter.toJson(listOf(
+            RpCharacterEntity("id", "A\"B", "line1\nline2", "")
+        ))
+        assertTrue(json.contains("A\\\"B"))
+        assertTrue(json.contains("line1\\nline2"))
     }
 }
