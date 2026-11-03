@@ -10,13 +10,13 @@ Native Android client built with Kotlin, Jetpack Compose and Room.
 - GGUF file import into app-private storage, file-header validation and local model catalogue.
 - Persistent light/dark theme preference.
 - Responsive Compose layout with safe drawing insets for system bars and display cutouts, plus a readable max content width on tablets/wide screens.
-- Fandom article text import with source URL attribution.
+- Fandom article import from standard `*.fandom.com/wiki/...` links via the MediaWiki API, with manual text fallback and source URL attribution.
 
 ## Important limitations
 - llama.cpp is **not yet bundled**. LocalInferenceEngine/LlamaCppEngine currently define an integration boundary only; the chat still uses the deterministic demo ReplyComposer.
 - GGUF files can be imported and catalogued, but cannot yet be loaded for inference.
 - Memory notes are stored locally but are not yet automatically retrieved and injected into the model prompt.
-- Fandom import currently accepts pasted article text and URL. Automatic URL fetching/site parsing is not enabled.
+- Fandom URL import supports standard HTTPS `*.fandom.com` article pages through the MediaWiki API. Some custom wiki configurations may require manual text import.
 - Character JSON import is available; JSON export and file-picker based JSON import remain future work.
 
 ## Build
