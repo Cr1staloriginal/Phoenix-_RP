@@ -103,7 +103,7 @@ private fun PhoenixApp(vm: PhoenixViewModel = viewModel()) {
                 } else {
                     Header(onTheme = LocalThemeToggle.current)
                     when (screen) {
-                        "stories" -> StoriesScreen(stories, storyId, onSelect = { storyId = it; screen = "characters" }, onCreate = vm::createStory)
+                        "stories" -> StoriesScreen(stories, storyId, onSelect = { storyId = it; screen = "characters" }, onCreate = vm::createStory, onDelete = vm::deleteStory)
                         "characters" -> CharactersScreen(
                             storyId, characters,
                             onCreate = { editingCharacter = null; screen = "editor" },
@@ -153,7 +153,7 @@ private fun Header(onTheme: () -> Unit) {
 }
 
 @Composable
-private fun StoriesScreen(stories: List<RpStoryEntity>, selected: String, onSelect: (String) -> Unit, onCreate: (String, String) -> Unit) {
+private fun StoriesScreen(stories: List<RpStoryEntity>, selected: String, onSelect: (String) -> Unit, onCreate: (String, String) -> Unit, onDelete: (String) -> Unit) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -168,7 +168,10 @@ private fun StoriesScreen(stories: List<RpStoryEntity>, selected: String, onSele
                     Column(Modifier.padding(16.dp)) {
                         Text(story.title, style = MaterialTheme.typography.titleMedium)
                         if (story.description.isNotBlank()) Text(story.description, color = Muted)
-                        Text(if (story.id == selected) "Выбрана" else "Открыть", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text(if (story.id == selected) "Выбрана" else "Открыть", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                            if (story.id != "default") TextButton(onClick = { onDelete(story.id) }) { Text("Удалить") }
+                        }
                     }
                 }
             }
@@ -312,7 +315,14 @@ private fun MemoryScreen(storyId: String, vm: PhoenixViewModel) {
         Button(onClick = { vm.addMemory(storyId, null, note); note = "" }, enabled = note.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Сохранить в память") }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(memories, key = { it.id }) { memory ->
-                Card(Modifier.fillMaxWidth()) { Text(memory.content, Modifier.padding(14.dp)) }
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(memory.content)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = { vm.deleteMemory(memory.id) }) { Text("Удалить заметку") }
+                        }
+                    }
+                }
             }
         }
     }
