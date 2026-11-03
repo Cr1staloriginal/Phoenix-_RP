@@ -3,7 +3,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.cr1stalik.phoenixrp.domain.ReplyComposer
+import dev.cr1stalik.phoenixrp.domain.RpInferenceRequest
+import dev.cr1stalik.phoenixrp.domain.RpPromptBuilder
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -41,19 +44,29 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
      else -> error("Ожидается JSON-объект или массив объектов.")
     }
     require(items.isNotEmpty()) { "В JSON нет персонажей." }
-    items.forEach { item ->
+    // Validate the complete document before writing anything to Room.
+    val validated = items.map { item ->
      val name = item.optString("name").trim()
      require(name.isNotBlank()) { "У каждого персонажа должно быть поле name." }
-     val id = UUID.randomUUID().toString()
-     val opening = item.optString("opening", "Персонаж ждёт твоего первого слова.")
-     dao.insertCharacter(RpCharacterEntity(
-      id = id, name = name, description = item.optString("description"),
-      opening = opening, storyId = storyId, appearance = item.optString("appearance"),
-      background = item.optString("background"), speechStyle = item.optString("speechStyle")
-     ))
-     if (opening.isNotBlank()) dao.insertMessage(RpMessageEntity(UUID.randomUUID().toString(), id, false, opening))
+     CharacterImportData(
+      name = name,
+      description = item.optString("description"),
+      appearance = item.optString("appearance"),
+      background = item.optString("background"),
+      speechStyle = item.optString("speechStyle"),
+      opening = item.optString("opening").ifBlank { "Персонаж ждёт твоего первого слова." }
+     )
     }
-    items.size
+    validated.forEach { item ->
+     val id = UUID.randomUUID().toString()
+     dao.insertCharacter(RpCharacterEntity(
+      id = id, name = item.name, description = item.description,
+      opening = item.opening, storyId = storyId, appearance = item.appearance,
+      background = item.background, speechStyle = item.speechStyle
+     ))
+     dao.insertMessage(RpMessageEntity(UUID.randomUUID().toString(), id, false, item.opening))
+    }
+    validated.size
    }
    result.fold(
     { onResult(true, "Импортировано персонажей: $it") },
@@ -61,6 +74,11 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
    )
   }
  }
+ private data class CharacterImportData(
+  val name: String, val description: String, val appearance: String,
+  val background: String, val speechStyle: String, val opening: String
+ )
+
  fun updateCharacter(character: RpCharacterEntity) { viewModelScope.launch { dao.insertCharacter(character) } }
  fun deleteCharacter(id: String) { viewModelScope.launch { dao.deleteMessages(id); dao.deleteMemoriesForCharacter(id); dao.deleteCharacter(id) } }
  fun sendMessage(character: RpCharacterEntity, text: String) {
@@ -69,6 +87,11 @@ class PhoenixViewModel(application: Application) : AndroidViewModel(application)
    dao.insertMessage(RpMessageEntity(UUID.randomUUID().toString(), character.id, true, clean))
    dao.insertMessage(RpMessageEntity(UUID.randomUUID().toString(), character.id, false, ReplyComposer.compose(character.name, character.description, clean)))
   }
+ }
+ suspend fun buildInferenceRequest(character: RpCharacterEntity): RpInferenceRequest {
+  val savedMemories = dao.observeMemories(character.storyId).first()
+  val conversation = dao.observeMessages(character.id).first()
+  return RpPromptBuilder.build(character, savedMemories, conversation)
  }
  fun deleteMemory(id: String) { viewModelScope.launch { dao.deleteMemory(id) } }
  fun addMemory(storyId: String, characterId: String?, content: String, source: String = "manual") {

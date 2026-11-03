@@ -84,6 +84,20 @@ private fun PhoenixApp(vm: PhoenixViewModel = viewModel()) {
                 ?: error("Не удалось создать файл экспорта")
         }.onFailure { android.widget.Toast.makeText(context, it.message ?: "Ошибка экспорта", android.widget.Toast.LENGTH_LONG).show() }
     }
+    val openCharacterJson = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                    ?: error("Не удалось прочитать JSON-файл")
+            }.onSuccess { raw ->
+                vm.importCharactersJson(storyId, raw) { success, message ->
+                    android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+                }
+            }.onFailure {
+                android.widget.Toast.makeText(context, it.message ?: "Ошибка чтения JSON", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
     val openModel = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runCatching {
             val dir = File(context.filesDir, "models").apply { mkdirs() }
@@ -118,6 +132,7 @@ private fun PhoenixApp(vm: PhoenixViewModel = viewModel()) {
                             onChat = { activeCharacter = it; screen = "chat" },
                             onDelete = vm::deleteCharacter,
                             onImport = { raw, done -> vm.importCharactersJson(storyId, raw, done) },
+                            onImportFile = { openCharacterJson.launch(arrayOf("application/json", "text/json", "*/*")) },
                             onExport = { exportCharacters.launch("phoenix-characters.json") },
                             onBack = { screen = "stories" }
                         )
@@ -188,7 +203,7 @@ private fun StoriesScreen(stories: List<RpStoryEntity>, selected: String, onSele
 }
 
 @Composable
-private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity>, onCreate: () -> Unit, onEdit: (RpCharacterEntity) -> Unit, onChat: (RpCharacterEntity) -> Unit, onDelete: (String) -> Unit, onImport: (String, (Boolean, String) -> Unit) -> Unit, onExport: () -> Unit, onBack: () -> Unit) {
+private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity>, onCreate: () -> Unit, onEdit: (RpCharacterEntity) -> Unit, onChat: (RpCharacterEntity) -> Unit, onDelete: (String) -> Unit, onImport: (String, (Boolean, String) -> Unit) -> Unit, onImportFile: () -> Unit, onExport: () -> Unit, onBack: () -> Unit) {
     var showImport by remember { mutableStateOf(false) }
     var importText by remember { mutableStateOf("") }
     var importError by remember { mutableStateOf<String?>(null) }
@@ -218,9 +233,10 @@ private fun CharactersScreen(storyId: String, characters: List<RpCharacterEntity
             TextButton(onClick = onBack) { Text("Истории") }
         }
         Button(onClick = onCreate, modifier = Modifier.fillMaxWidth()) { Text("＋ Новый персонаж") }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { showImport = true; importError = null }, modifier = Modifier.weight(1f)) { Text("Импорт JSON") }
-            OutlinedButton(onClick = onExport, modifier = Modifier.weight(1f)) { Text("Экспорт JSON") }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            OutlinedButton(onClick = { showImport = true; importError = null }, modifier = Modifier.weight(1f)) { Text("Вставить JSON") }
+            OutlinedButton(onClick = onImportFile, modifier = Modifier.weight(1f)) { Text("Из файла") }
+            OutlinedButton(onClick = onExport, modifier = Modifier.weight(1f)) { Text("Экспорт") }
         }
         if (characters.isEmpty()) Text("В этой истории пока нет персонажей.", color = Muted)
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
